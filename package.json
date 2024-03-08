@@ -12,12 +12,14 @@
     "vite": "^4.5.0"
   },
   "dependencies": {
-    "@react-three/drei": "^9.96.1",
+    "@react-three/drei": "^9.75.0",
     "@react-three/fiber": "^8.15.14",
     "leva": "^0.9.35",
+    "maath": "^0.10.7",
     "r3f-perf": "^7.1.2",
     "react": "18.2",
     "react-dom": "18.2",
-    "three": "^0.160.1"
+    "three": "^0.160.1",
+    "wouter": "2.11.0"
   }
 }
