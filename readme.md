@@ -1,6 +1,4 @@
-## Setup
-Download [Node.js](https://nodejs.org/en/download/).
-Run this followed commands:
+## Notes
 
 ``` bash
 # Install dependencies (only the first time)
@@ -12,3 +10,7 @@ npm run dev
 # Build for production in the dist/ directory
 npm run build
 ```
+
+<img src='Screenshot.png' width="480px">
+
+[**Live Demo**](https://nodejs.org/en/download/).
