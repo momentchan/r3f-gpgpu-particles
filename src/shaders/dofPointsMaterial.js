@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { extend } from '@react-three/fiber'
 
-class DofPointsMaterial extends THREE.ShaderMaterial {
+export default class DofPointsMaterial extends THREE.ShaderMaterial {
     constructor() {
         super({
             vertexShader: /* glsl */`
@@ -45,6 +45,3 @@ class DofPointsMaterial extends THREE.ShaderMaterial {
         })
     }
 }
-
-
-extend({ DofPointsMaterial })
