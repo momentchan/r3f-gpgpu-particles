@@ -4,11 +4,12 @@ import { useMemo, useRef } from "react";
 import './shaders/simulationMaterial'
 import './shaders/dofPointsMaterial'
 import FBOCompute from './r3f-gist/gpgpu/FBOCompute';
+import SimulationMaterial from './shaders/simulationMaterial';
 
 export default function Particles({ speed, fov, aperture, focus, curl, size = 512, ...props }) {
     const fbo = useRef()
-    const simRef = useRef()
     const renderRef = useRef()
+    const geoRef = useRef()
 
     // Normalize points
     const particles = useMemo(() => {
@@ -22,10 +23,12 @@ export default function Particles({ speed, fov, aperture, focus, curl, size = 51
         return particles
     }, [size])
 
+    const simMat = new SimulationMaterial(size, size);
+
     useFrame((state) => {
         fbo.current.update(state)
-        simRef.current.uniforms.uTime.value = state.clock.elapsedTime * speed
-        simRef.current.uniforms.uCurlFreq.value = THREE.MathUtils.lerp(simRef.current.uniforms.uCurlFreq.value, curl, 0.1)
+        simMat.uniforms.uTime.value = state.clock.elapsedTime * speed
+        simMat.uniforms.uCurlFreq.value = THREE.MathUtils.lerp(simMat.uniforms.uCurlFreq.value, curl, 0.1)
 
         renderRef.current.uniforms.positions.value = fbo.current.getTarget()
         renderRef.current.uniforms.uTime.value = state.clock.elapsedTime
@@ -35,14 +38,12 @@ export default function Particles({ speed, fov, aperture, focus, curl, size = 51
     })
 
     return (<>
-        <FBOCompute ref={fbo} width={size} height={size}>
-            <simulationMaterial width={size} height={size} ref={simRef} />
-        </FBOCompute>
+        <FBOCompute ref={fbo} width={size} height={size} simMat={simMat} />
 
         {/* The result of which is forwarded into a pointcloud via data-texture */}
         <points {...props}>
             <dofPointsMaterial ref={renderRef} />
-            <bufferGeometry>
+            <bufferGeometry ref={geoRef}>
                 <bufferAttribute attach="attributes-position" count={particles.length / 3} array={particles} itemSize={3} />
             </bufferGeometry>
         </points>

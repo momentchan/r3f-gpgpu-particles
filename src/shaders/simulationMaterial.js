@@ -1,5 +1,4 @@
 import * as THREE from 'three'
-import { extend } from '@react-three/fiber'
 import snoise from '../r3f-gist/shader/cginc/noise/simplexNoise'
 import pnoise from '../r3f-gist/shader/cginc/noise/perlinClassic3D'
 
@@ -15,9 +14,9 @@ function getSphere(count, size, p = new THREE.Vector4()) {
     return data
 }
 
-class SimulationMaterial extends THREE.ShaderMaterial {
-    constructor() {
-        const positionsTexture = new THREE.DataTexture(getSphere(512 * 512, 128), 512, 512, THREE.RGBAFormat, THREE.FloatType)
+export default class SimulationMaterial extends THREE.ShaderMaterial {
+    constructor(w, h) {
+        const positionsTexture = new THREE.DataTexture(getSphere(w * h, 128), w, h, THREE.RGBAFormat, THREE.FloatType)
         positionsTexture.needsUpdate = true
 
         super({
@@ -57,5 +56,3 @@ class SimulationMaterial extends THREE.ShaderMaterial {
         })
     }
 }
-
-extend({ SimulationMaterial })
