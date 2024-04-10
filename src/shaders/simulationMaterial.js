@@ -2,43 +2,23 @@ import * as THREE from 'three'
 import snoise from '../r3f-gist/shader/cginc/noise/simplexNoise'
 import pnoise from '../r3f-gist/shader/cginc/noise/perlinClassic3D'
 
-function getPoint(v, size, data, offset) {
-    v.set(Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1)
-    if (v.length() > 1) return getPoint(v, size, data, offset)
-    return v.normalize().multiplyScalar(size).toArray(data, offset)
-}
-
-function getSphere(count, size, p = new THREE.Vector4()) {
-    const data = new Float32Array(count * 4)
-    for (let i = 0; i < count * 4; i += 4) getPoint(p, size, data, i)
-    return data
-}
-
 export default class SimulationMaterial extends THREE.ShaderMaterial {
-    constructor(w, h) {
-        const positionsTexture = new THREE.DataTexture(getSphere(w * h, 128), w, h, THREE.RGBAFormat, THREE.FloatType)
-        positionsTexture.needsUpdate = true
-
+    constructor() {
         super({
-            vertexShader: `varying vec2 vUv;
-            void main() {
-              vUv = uv;
-              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }`,
             fragmentShader: /* glsl */`
 
             ${snoise}
             ${pnoise}
             
-            uniform sampler2D positions;
             uniform float uCurlFreq;
             uniform float uTime;
-            varying vec2 vUv;
+            uniform sampler2D uInitPos;
 
             void main() {
                 float t = uTime * 0.015;
-                vec3 pos = texture2D(positions, vUv).rgb; // basic simulation: displays the particles in place
-                vec3 curlPos = texture2D(positions, vUv).rgb;
+                vec2 uv = gl_FragCoord.xy / resolution.xy;
+                vec3 pos = texture2D(uInitPos, uv).rgb; // basic simulation: displays the particles in place
+                vec3 curlPos = texture2D(uInitPos, uv).rgb;
                 pos = curlNoise(pos * uCurlFreq + t);
                 curlPos = curlNoise(curlPos * uCurlFreq + t);
                 curlPos += curlNoise(curlPos * uCurlFreq * 2.0) * 0.5;
@@ -49,9 +29,9 @@ export default class SimulationMaterial extends THREE.ShaderMaterial {
             }`,
 
             uniforms: {
-                positions: { value: positionsTexture },
                 uTime: { value: 0 },
-                uCurlFreq: { value: 0.25 }
+                uCurlFreq: { value: 0.25 },
+                uInitPos: { value: null }
             }
         })
     }

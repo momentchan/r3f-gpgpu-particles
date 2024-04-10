@@ -1,17 +1,29 @@
 import * as THREE from 'three'
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import './shaders/simulationMaterial'
 import './shaders/dofPointsMaterial'
-import FBOCompute from './r3f-gist/gpgpu/FBOCompute';
 import SimulationMaterial from './shaders/simulationMaterial';
 import DofPointsMaterial from './shaders/dofPointsMaterial';
+import GPGPU from './r3f-gist/gpgpu/GPGPU';
+
+function getPoint(v, size, data, offset) {
+    v.set(Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1)
+    if (v.length() > 1) return getPoint(v, size, data, offset)
+    return v.normalize().multiplyScalar(size).toArray(data, offset)
+}
+
+function getSphere(count, size, p = new THREE.Vector4()) {
+    const data = new Float32Array(count * 4)
+    for (let i = 0; i < count * 4; i += 4) getPoint(p, size, data, i)
+    return data
+}
+
 
 export default function Particles({ speed, fov, aperture, focus, curl, size = 512, ...props }) {
-    const fbo = useRef()
     const geoRef = useRef()
-    const simMat = new SimulationMaterial(size, size);
     const renderMat = new DofPointsMaterial()
+    const { gl } = useThree()
 
     // Normalize points
     const particles = useMemo(() => {
@@ -25,12 +37,31 @@ export default function Particles({ speed, fov, aperture, focus, curl, size = 51
         return particles
     }, [size])
 
-    useFrame((state) => {
-        fbo.current.update(state)
-        simMat.uniforms.uTime.value = state.clock.elapsedTime * speed
-        simMat.uniforms.uCurlFreq.value = THREE.MathUtils.lerp(simMat.uniforms.uCurlFreq.value, curl, 0.1)
 
-        renderMat.uniforms.positions.value = fbo.current.getTarget()
+    const gpgpu = useMemo(() => {
+        const gpgpu = new GPGPU(gl, size, size)
+
+        gpgpu.addVariable('positions', new Float32Array(size * size * 4), new SimulationMaterial())
+
+        const initPosTex = new THREE.DataTexture(getSphere(size * size, 128), size, size, THREE.RGBAFormat, THREE.FloatType)
+        initPosTex.needsUpdate = true
+
+        gpgpu.setUniform('positions', 'uTime', 0)
+        gpgpu.setUniform('positions', 'uInitPos', initPosTex)
+
+        gpgpu.init()
+
+        return gpgpu
+    }, [size])
+
+
+    useFrame((state) => {
+        gpgpu.setUniform('positions', 'uTime', state.clock.elapsedTime * speed)
+        gpgpu.setUniform('positions', 'uCurlFreq', THREE.MathUtils.lerp(gpgpu.getUniform('positions', 'uCurlFreq').value, curl, 0.1))
+
+        gpgpu.compute()
+
+        renderMat.uniforms.positions.value = gpgpu.getCurrentRenderTarget('positions')
         renderMat.uniforms.uTime.value = state.clock.elapsedTime
         renderMat.uniforms.uFocus.value = THREE.MathUtils.lerp(renderMat.uniforms.uFocus.value, focus, 0.1)
         renderMat.uniforms.uFov.value = THREE.MathUtils.lerp(renderMat.uniforms.uFov.value, fov, 0.1)
@@ -38,8 +69,6 @@ export default function Particles({ speed, fov, aperture, focus, curl, size = 51
     })
 
     return (<>
-        <FBOCompute ref={fbo} width={size} height={size} simMat={simMat} />
-
         {/* The result of which is forwarded into a pointcloud via data-texture */}
         <points {...props} material={renderMat}>
             <bufferGeometry ref={geoRef}>
