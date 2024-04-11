@@ -2,9 +2,9 @@ import * as THREE from 'three'
 import { useFrame, useThree } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import './shaders/simulationMaterial'
-import './shaders/dofPointsMaterial'
+import './r3f-gist/shader/custom/particles/DofPointsMaterial'
 import SimulationMaterial from './shaders/simulationMaterial';
-import DofPointsMaterial from './shaders/dofPointsMaterial';
+import DofPointsMaterial from './r3f-gist/shader/custom/particles/DofPointsMaterial';
 import GPGPU from './r3f-gist/gpgpu/GPGPU';
 
 function getPoint(v, size, data, offset) {
